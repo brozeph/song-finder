@@ -51,11 +51,13 @@ func main() {
 	for _, imageFile := range imageFiles {
 		fmt.Println("Processing image at:", imageFile)
 
-		annotation, err := services.AnalyzeImage(imageFile)
+		text, err := services.DetectText(imageFile)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println(services.SongFromAnnotation(annotation))
+		song := services.SongArtistAndName(text)
+
+		fmt.Println(song)
 	}
 }

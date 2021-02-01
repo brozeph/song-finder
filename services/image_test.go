@@ -1,13 +1,12 @@
 package services_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/brozeph/song-finder/services"
 )
 
-func TestSongFromAnnotationFromPRP(t *testing.T) {
+func TestSongArtistAndNameFromPRP(t *testing.T) {
 	testAnnotation := `
 11:53
 Master Bedroom + 3
@@ -27,30 +26,30 @@ Search
 Settings
 
 `
-	song := services.SongFromAnnotation(testAnnotation)
+	expected := "Reverend Freakchild - Personal Jesus (On the..."
+	song := services.SongArtistAndName(testAnnotation)
 
-	if song != "Reverend Freakchild - Personal Jesus (On the..." {
-		fmt.Println(song)
-		t.Errorf("expected song result from annotation")
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
 
-func TestSongFromAnnotationFromPRPLockScreen(t *testing.T) {
+func TestSongArtistAndNameFromPRPLockScreen(t *testing.T) {
 	testAnnotation := `
 Portland Radio Project
 Pontland Radio Prjeat
 The Dig - Soul of the Night
 
 `
-	song := services.SongFromAnnotation(testAnnotation)
+	expected := "The Dig - Soul of the Night"
+	song := services.SongArtistAndName(testAnnotation)
 
-	if song != "The Dig - Soul of the Night" {
-		fmt.Println(song)
-		t.Errorf("expected song result from annotation")
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
 
-func TestSongFromAnnotationFromPRPDifferentRooms(t *testing.T) {
+func TestSongArtistAndNameFromPRPDifferentRooms(t *testing.T) {
 	testAnnotation := `
 3:40 1
 Move + Den
@@ -72,15 +71,16 @@ Search
 Settings
 
 `
-	song := services.SongFromAnnotation(testAnnotation)
 
-	if song != "Blisses B - Twin Geeks" {
-		fmt.Println(song)
-		t.Errorf("expected song result from annotation")
+	expected := "Blisses B - Twin Geeks"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
 
-func TestSongFromAnnotationFromSonosRadio(t *testing.T) {
+func TestSongArtistAndNameFromSonosRadio(t *testing.T) {
 	testAnnotation := `
 Guest Room
 Jessy Lanza
@@ -90,30 +90,28 @@ Pull my hair back
 
 `
 	expected := "Jessy Lanza - Pull my hair back"
-	song := services.SongFromAnnotation(testAnnotation)
+	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
-		fmt.Println(song)
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
 
-func TestSongFromAnnotationFromSpotify(t *testing.T) {
+func TestSongArtistAndNameFromSpotify(t *testing.T) {
 	testAnnotation := `
 SG Lewis
 SG Lewis • Chemicals
 Playing from E Spotify
 `
 	expected := "SG Lewis - Chemicals"
-	song := services.SongFromAnnotation(testAnnotation)
+	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
-		fmt.Println(song)
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
 
-func TestSongFromAnnotationFromSpotifyLockScreen(t *testing.T) {
+func TestSongArtistAndNameFromSpotifyLockScreen(t *testing.T) {
 	testAnnotation := `
 Tuesday, February 12
 Portland Radio Project
@@ -121,10 +119,9 @@ Pnthnt Ruda Pge Smallpools - Stumblin' Home
 Swipe up to ópen
 `
 	expected := "Pnthnt Ruda Pge Smallpools - Stumblin' Home"
-	song := services.SongFromAnnotation(testAnnotation)
+	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
-		fmt.Println(song)
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
 	}
 }
