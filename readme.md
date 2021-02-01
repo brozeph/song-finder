@@ -16,7 +16,7 @@ For my purposes, I set an environment variable named `GOOGLE_APPLICATION_CREDENT
 
 See the following: https://developer.spotify.com/dashboard/login
 
-## Execute
+## Setup
 
 ```bash
 git clone https://github.com/brozeph/song-finder.git
