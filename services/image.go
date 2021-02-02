@@ -15,6 +15,7 @@ import (
 
 var (
 	cr    *regexp.Regexp = regexp.MustCompile(`\n`)
+	div   *regexp.Regexp = regexp.MustCompile(`(\w)(\ \-\ ){1}(\w)`)
 	exs   *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
 	num   *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
 	ply   *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
@@ -31,6 +32,8 @@ func dedup(value string) string {
 	words := []string{}
 
 	for _, word := range sp.Split(value, -1) {
+		word = strings.ToLower(word)
+
 		if found[word] {
 			continue
 		}
@@ -124,6 +127,12 @@ func SongArtistAndName(annotation string) string {
 			continue
 		}
 
+		// if the song divider is present on this line,
+		// return directly
+		if div.MatchString(line) {
+			return div.ReplaceAllString(line, "$1 $3")
+		}
+
 		// filter out Numbers only
 		if num.MatchString(line) {
 			continue
@@ -167,7 +176,7 @@ func SongArtistAndName(annotation string) string {
 		songParts = append(songParts, line)
 	}
 
-	song := strings.Join(songParts, " - ")
+	song := strings.Join(songParts, " ")
 	song = stripRunes(song)
 	song = dedup(song)
 	song = strings.ReplaceAll(song, "  ", " ")

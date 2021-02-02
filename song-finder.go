@@ -57,7 +57,13 @@ func main() {
 		}
 
 		song := services.SongArtistAndName(text)
+		track, err := services.Search(song)
+
+		if err != nil {
+			panic(err)
+		}
 
 		fmt.Println(song)
+		fmt.Println(track)
 	}
 }

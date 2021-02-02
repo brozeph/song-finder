@@ -21,10 +21,18 @@ See the following: https://developer.spotify.com/dashboard/login
 ```bash
 git clone https://github.com/brozeph/song-finder.git
 cd song-finder
+go mod download
+```
+
+### Running the App
+
+Note the path below should be to the screenshots of captured songs to be looked up.
+
+```bash
 go run . --path /path/to/images
 ```
 
-## Testing
+### Running Tests
 
 ```bash
 go test ./...

@@ -26,7 +26,7 @@ Search
 Settings
 
 `
-	expected := "Reverend Freakchild - Personal Jesus (On the..."
+	expected := "Reverend Freakchild Personal Jesus (On the..."
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -41,7 +41,7 @@ Pontland Radio Prjeat
 The Dig - Soul of the Night
 
 `
-	expected := "The Dig - Soul of the Night"
+	expected := "The Dig Soul of the Night"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -72,7 +72,7 @@ Settings
 
 `
 
-	expected := "Blisses B - Twin Geeks"
+	expected := "Blisses B Twin Geeks"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -89,7 +89,7 @@ Sunset Fuzz on SONOS Radio
 Pull my hair back
 
 `
-	expected := "Jessy Lanza - Pull my hair back"
+	expected := "Jessy Lanza Pull my hair back"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -103,7 +103,7 @@ SG Lewis
 SG Lewis • Chemicals
 Playing from E Spotify
 `
-	expected := "SG Lewis - Chemicals"
+	expected := "SG Lewis Chemicals"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -118,7 +118,7 @@ Portland Radio Project
 Pnthnt Ruda Pge Smallpools - Stumblin' Home
 Swipe up to ópen
 `
-	expected := "Pnthnt Ruda Pge Smallpools - Stumblin' Home"
+	expected := "Pnthnt Ruda Pge Smallpools Stumblin' Home"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
