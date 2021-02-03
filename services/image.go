@@ -5,6 +5,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -91,6 +92,8 @@ func DetectText(imagePath string) (string, error) {
 		text = annotations[0].Description
 	}
 
+	fmt.Println(text)
+
 	return text, nil
 }
 
@@ -130,7 +133,7 @@ func SongArtistAndName(annotation string) string {
 		// if the song divider is present on this line,
 		// return directly
 		if div.MatchString(line) {
-			return div.ReplaceAllString(line, "$1 $3")
+			return strings.ToLower(div.ReplaceAllString(line, "$1 $3"))
 		}
 
 		// filter out Numbers only

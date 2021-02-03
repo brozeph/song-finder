@@ -26,7 +26,7 @@ Search
 Settings
 
 `
-	expected := "Reverend Freakchild Personal Jesus (On the..."
+	expected := "reverend freakchild personal jesus (on the..."
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -41,7 +41,7 @@ Pontland Radio Prjeat
 The Dig - Soul of the Night
 
 `
-	expected := "The Dig Soul of the Night"
+	expected := "the dig soul of the night"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -72,7 +72,7 @@ Settings
 
 `
 
-	expected := "Blisses B Twin Geeks"
+	expected := "blisses b twin geeks"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -89,7 +89,7 @@ Sunset Fuzz on SONOS Radio
 Pull my hair back
 
 `
-	expected := "Jessy Lanza Pull my hair back"
+	expected := "jessy lanza pull my hair back"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -103,7 +103,7 @@ SG Lewis
 SG Lewis • Chemicals
 Playing from E Spotify
 `
-	expected := "SG Lewis Chemicals"
+	expected := "sg lewis chemicals"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -118,7 +118,33 @@ Portland Radio Project
 Pnthnt Ruda Pge Smallpools - Stumblin' Home
 Swipe up to ópen
 `
-	expected := "Pnthnt Ruda Pge Smallpools Stumblin' Home"
+	expected := "pnthnt ruda pge smallpools stumblin' home"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromSpotifyInSonos(t *testing.T) {
+	testAnnotation := `
+6:46 1
+Kitchen + 2
+ZD 100%
+SONNY ALVEN
+WASTĘD YOUTH (FEAT. CAL)
+AMERIC
+1:11
+-2:05
+Wasted Youth
+Sonny Alven• Girls - EP
+feel good
+Spotify
+!!
+%3D
+
+`
+	expected := "Sonny Alven Girls EP"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {

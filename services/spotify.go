@@ -42,6 +42,10 @@ func Search(song string) (spotify.SimpleTrack, error) {
 		return spotify.SimpleTrack{}, err
 	}
 
+	if len(song) == 0 {
+		return spotify.SimpleTrack{}, nil
+	}
+
 	results, err := client.Search(song, spotify.SearchTypeTrack)
 	if err != nil {
 		return spotify.SimpleTrack{}, err
