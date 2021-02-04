@@ -17,6 +17,7 @@ import (
 var (
 	cr    *regexp.Regexp = regexp.MustCompile(`\n`)
 	div   *regexp.Regexp = regexp.MustCompile(`(\w)(\ \-\ ){1}(\w)`)
+	dot   *regexp.Regexp = regexp.MustCompile(`\s?•\s`)
 	exs   *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
 	num   *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
 	ply   *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
@@ -24,6 +25,7 @@ var (
 	rm    *regexp.Regexp = regexp.MustCompile(`(?i)(\w*(\ ){1}\S*){0,1}room(\ \+\ [0-9]){0,1}$`)
 	sns   *regexp.Regexp = regexp.MustCompile(`(?i)sonos`)
 	sp    *regexp.Regexp = regexp.MustCompile(` `)
+	sptfy *regexp.Regexp = regexp.MustCompile(`\nSpotify\n`)
 	swpup *regexp.Regexp = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
 	wd    *regexp.Regexp = regexp.MustCompile(`\w+`)
 )
@@ -44,6 +46,16 @@ func dedup(value string) string {
 	}
 
 	return strings.Join(words, " ")
+}
+
+func formatSongFromSpotify(name string, artist string) string {
+	loc := dot.FindStringIndex(artist)
+
+	if len(loc) > 1 {
+		artist = artist[:loc[1]]
+	}
+
+	return strings.Join([]string{artist, name}, " ")
 }
 
 func stripRunes(value string) string {
@@ -106,6 +118,8 @@ func SongArtistAndName(annotation string) string {
 		subAnnotation string
 	)
 
+	isSpotify := sptfy.MatchString(annotation)
+
 	// Can safely remove all lines above the first occurrence
 	// of Portland Radio Project in the annotation given
 	// the location of the song title and artist name in
@@ -124,7 +138,7 @@ func SongArtistAndName(annotation string) string {
 		return lines[0]
 	}
 
-	for _, line := range lines {
+	for i, line := range lines {
 		// filter out blank lines
 		if line == "" {
 			continue
@@ -138,6 +152,14 @@ func SongArtistAndName(annotation string) string {
 
 		// filter out Numbers only
 		if num.MatchString(line) {
+			// check to see if two numbers appear on the same line (scrubber)
+			// and that the song is playing from Spotify
+			if isSpotify && num.MatchString(lines[i+1]) {
+				// safe to clear everything prior to this point because the
+				// song detail begins below (in fact, the song name is next)
+				return formatSongFromSpotify(lines[i+2], lines[i+4])
+			}
+
 			continue
 		}
 

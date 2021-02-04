@@ -144,7 +144,7 @@ Spotify
 %3D
 
 `
-	expected := "Sonny Alven Girls EP"
+	expected := "sonny alven wasted youth"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
