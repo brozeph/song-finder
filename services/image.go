@@ -48,14 +48,17 @@ func dedup(value string) string {
 	return strings.Join(words, " ")
 }
 
-func formatSongFromSpotify(name string, artist string) string {
+func formatSongFromSpotify(artist string, name string) string {
 	loc := dot.FindStringIndex(artist)
 
+	fmt.Println(artist)
+	fmt.Println(name)
+
 	if len(loc) > 1 {
-		artist = artist[:loc[1]]
+		artist = artist[:loc[0]]
 	}
 
-	return strings.Join([]string{artist, name}, " ")
+	return strings.ToLower(strings.Join([]string{artist, name}, " "))
 }
 
 func stripRunes(value string) string {
@@ -157,7 +160,7 @@ func SongArtistAndName(annotation string) string {
 			if isSpotify && num.MatchString(lines[i+1]) {
 				// safe to clear everything prior to this point because the
 				// song detail begins below (in fact, the song name is next)
-				return formatSongFromSpotify(lines[i+2], lines[i+4])
+				return formatSongFromSpotify(lines[i+3], lines[i+2])
 			}
 
 			continue
