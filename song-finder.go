@@ -1,5 +1,7 @@
-// Progam that reads image files from a specified file path
-// and then uses Google's ML cloud API for reading text
+// Progam that reads image files from a specified file path,
+// then uses Google's ML cloud API for reading text, and
+// finally queries Spotify to find matches and create a
+// playlist
 package main
 
 import (
@@ -30,9 +32,11 @@ func main() {
 	var (
 		imageFiles    []string
 		imageFilePath string
+		playlistName  string
 	)
 
 	flag.StringVar(&imageFilePath, "path", "", "Specify path to image files.")
+	flag.StringVar(&playlistName, "playlist", "", "Provide name for Spotify playlist to create")
 	flag.Parse()
 
 	// find all of the image files
