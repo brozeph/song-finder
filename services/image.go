@@ -61,7 +61,7 @@ func formatSongFromSpotify(artist string, name string) string {
 		artist = artist[:loc[0]]
 	}
 
-	return strings.ToLower(strings.Join([]string{artist, name}, " "))
+	return strings.ToLower(fmt.Sprintf("%s %s", artist, name))
 }
 
 func stripRunes(value string) string {

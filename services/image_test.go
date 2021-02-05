@@ -242,7 +242,7 @@ Search
 Settings
 
 `
-	expected := "zedd papercut"
+	expected := "zedd раpercut"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
