@@ -16,11 +16,13 @@ import (
 
 var (
 	cr     *regexp.Regexp = regexp.MustCompile(`\n`)
-	div    *regexp.Regexp = regexp.MustCompile(`(\w)(\ \-\ ){1}(\w)`)
+	div    *regexp.Regexp = regexp.MustCompile(`(\b|\.)(\ \-\ ){1}(\b)`)
 	dot    *regexp.Regexp = regexp.MustCompile(`\s?•\s`)
 	exs    *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
+	feat   *regexp.Regexp = regexp.MustCompile(`(?i)\(feat\. [.\s\d\w]*\)`)
 	jnk    *regexp.Regexp = regexp.MustCompile(`([•\.]\s?){3}`)
 	num    *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
+	pndra  *regexp.Regexp = regexp.MustCompile(`(?i)\bpandora\b`)
 	ply    *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
 	prp    *regexp.Regexp = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
 	rm     *regexp.Regexp = regexp.MustCompile(`(?i)(\w*(\ ){1}\S*){0,1}room(\ \+\ [0-9]){0,1}$`)
@@ -28,37 +30,41 @@ var (
 	sns    *regexp.Regexp = regexp.MustCompile(`(?i)sonos`)
 	snsrad *regexp.Regexp = regexp.MustCompile(`(?i)on sonos radio`)
 	sp     *regexp.Regexp = regexp.MustCompile(` `)
-	sptfy  *regexp.Regexp = regexp.MustCompile(`[\n\s]{1}Spotify\n`)
+	sptfy  *regexp.Regexp = regexp.MustCompile(`(?i)[\n\s]{1}spotify\b`)
 	swpup  *regexp.Regexp = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
 	wd     *regexp.Regexp = regexp.MustCompile(`\w+`)
 )
 
-func dedup(value string) string {
-	found := map[string]bool{}
-	words := []string{}
-
-	for _, word := range sp.Split(value, -1) {
-		word = strings.ToLower(word)
-
-		if found[word] {
-			continue
-		}
-
-		found[word] = true
-		words = append(words, word)
-	}
-
-	return strings.Join(words, " ")
-}
-
-func formatSongFromSpotify(artist string, name string) string {
+func formatSongFromSpotifyOrPandora(artist string, name string) string {
 	loc := dot.FindStringIndex(artist)
 
 	if len(loc) > 1 {
 		artist = artist[:loc[0]]
 	}
 
-	return strings.ToLower(fmt.Sprintf("%s %s", artist, name))
+	return sanitizeSong(fmt.Sprintf("%s %s", artist, name))
+}
+
+func sanitizeSong(song string) string {
+	// convert to lowercase
+	song = strings.ToLower(song)
+
+	// remove weird chars (like dot symbols)
+	song = stripRunes(song)
+
+	// remove multiple spaces
+	song = strings.ReplaceAll(song, "  ", " ")
+
+	// remove (feat. XXXX) wording
+	song = feat.ReplaceAllString(song, "")
+
+	// removing leading and trailing space
+	song = strings.TrimSpace(song)
+
+	// remove the divider char (-) if found
+	song = div.ReplaceAllString(song, "")
+
+	return song
 }
 
 func stripRunes(value string) string {
@@ -118,8 +124,9 @@ func SongArtistAndName(annotation string) string {
 		songParts []string
 	)
 
-	fmt.Println(annotation)
+	// fmt.Println(annotation)
 
+	isPandora := pndra.MatchString(annotation)
 	isPRP := prp.MatchString(annotation)
 	isShazam := shzm.MatchString(annotation)
 	isSonosRadio := snsrad.MatchString(annotation)
@@ -168,14 +175,14 @@ func SongArtistAndName(annotation string) string {
 					name = lines[i-3]
 				}
 
-				return strings.ToLower(fmt.Sprintf("%s %s", artist, name))
+				return sanitizeSong(fmt.Sprintf("%s %s", artist, name))
 			}
 
 			continue
 		}
 
-		// when Spotify, continue until near the song artist and name
-		if isSpotify {
+		// when Spotify or Pandora, continue until near the song artist and name
+		if isSpotify || isPandora {
 			// check to see if two numbers appear on the same line (scrubber)
 			// and that the song is playing from Spotify
 			if num.MatchString(line) && num.MatchString(lines[i+1]) {
@@ -189,7 +196,7 @@ func SongArtistAndName(annotation string) string {
 
 				// safe to clear everything prior to this point because the
 				// song detail begins below (in fact, the song name is next)
-				return formatSongFromSpotify(artist, name)
+				return formatSongFromSpotifyOrPandora(artist, name)
 			}
 
 			continue
@@ -198,7 +205,7 @@ func SongArtistAndName(annotation string) string {
 		// if the song divider is present on this line,
 		// return directly
 		if div.MatchString(line) {
-			return strings.ToLower(div.ReplaceAllString(line, "$1 $3"))
+			return sanitizeSong(div.ReplaceAllString(line, "$1 $3"))
 		}
 
 		// filter out Numbers only
@@ -244,10 +251,6 @@ func SongArtistAndName(annotation string) string {
 		songParts = append(songParts, line)
 	}
 
-	song := strings.Join(songParts, " ")
-	song = stripRunes(song)
-	song = dedup(song)
-	song = strings.ReplaceAll(song, "  ", " ")
-
-	return song
+	// join the artist and song name for search
+	return sanitizeSong(strings.Join(songParts, " "))
 }

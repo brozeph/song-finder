@@ -64,6 +64,55 @@ Settings
 	}
 }
 
+func TestSongArtistAndNameFromPRP3(t *testing.T) {
+	testAnnotation := `8:47 1
+Kitchen
+PP
+Pontland Rad9 Projedt
+Portland Radio Project
+•..
+YellowStraps - Goldress (feat. VYNK)
+Portland Radio Project
+IN
+TUNE
+K]
+!!
+`
+	expected := "yellowstraps goldress"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromPRP4(t *testing.T) {
+	testAnnotation := `
+11:55
+レ
+Living Room + 3
+ニ
+BP
+Portland Racfi9 Projedt
+Portland Radio Project
+RAC Pron R.A.C. - This Song Feat Rostam
+Portland Radio Project on TUNE
+IN
+») -
+My Sonos
+Browse
+Rooms
+Search
+Settings
+`
+	expected := "rac pron r.a.c. this song feat rostam"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
 func TestSongArtistAndNameFromPRPLockScreen(t *testing.T) {
 	testAnnotation := `
 Portland Radio Project
@@ -182,6 +231,11 @@ Swipe up to ópen
 func TestSongArtistAndNameFromSpotifyMinimal(t *testing.T) {
 	testAnnotation := `
 SG Lewis
+CHEMICALS
+1:12
+-3:02
+Chemicals
+• ..
 SG Lewis • Chemicals
 Playing from E Spotify
 `
@@ -243,6 +297,32 @@ Settings
 
 `
 	expected := "zedd раpercut"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromPandora(t *testing.T) {
+	testAnnotation := `
+8:32 1
+Kitchen + 2
+ZD 100%
+A FINE FRENZY
+ONE CELL IN THE SEA
+2:22
+-1:54
+Hope For The Hopeless
+A Fine Frenzy • One Cell In The Sea
+Rosi Golan Radio (My Station)
+pandora
+K]
+!!
+%3D
+
+`
+	expected := "a fine frenzy hope for the hopeless"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
