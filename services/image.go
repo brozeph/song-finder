@@ -54,9 +54,6 @@ func dedup(value string) string {
 func formatSongFromSpotify(artist string, name string) string {
 	loc := dot.FindStringIndex(artist)
 
-	fmt.Println(artist)
-	fmt.Println(name)
-
 	if len(loc) > 1 {
 		artist = artist[:loc[0]]
 	}
@@ -119,7 +116,6 @@ func SongArtistAndName(annotation string) string {
 	var (
 		lines     []string
 		songParts []string
-		//subAnnotation string
 	)
 
 	fmt.Println(annotation)
