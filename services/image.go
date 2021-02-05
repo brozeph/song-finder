@@ -15,19 +15,22 @@ import (
 )
 
 var (
-	cr    *regexp.Regexp = regexp.MustCompile(`\n`)
-	div   *regexp.Regexp = regexp.MustCompile(`(\w)(\ \-\ ){1}(\w)`)
-	dot   *regexp.Regexp = regexp.MustCompile(`\s?•\s`)
-	exs   *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
-	num   *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
-	ply   *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
-	prp   *regexp.Regexp = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
-	rm    *regexp.Regexp = regexp.MustCompile(`(?i)(\w*(\ ){1}\S*){0,1}room(\ \+\ [0-9]){0,1}$`)
-	sns   *regexp.Regexp = regexp.MustCompile(`(?i)sonos`)
-	sp    *regexp.Regexp = regexp.MustCompile(` `)
-	sptfy *regexp.Regexp = regexp.MustCompile(`\nSpotify\n`)
-	swpup *regexp.Regexp = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
-	wd    *regexp.Regexp = regexp.MustCompile(`\w+`)
+	cr     *regexp.Regexp = regexp.MustCompile(`\n`)
+	div    *regexp.Regexp = regexp.MustCompile(`(\w)(\ \-\ ){1}(\w)`)
+	dot    *regexp.Regexp = regexp.MustCompile(`\s?•\s`)
+	exs    *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
+	jnk    *regexp.Regexp = regexp.MustCompile(`([•\.]\s?){3}`)
+	num    *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
+	ply    *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
+	prp    *regexp.Regexp = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
+	rm     *regexp.Regexp = regexp.MustCompile(`(?i)(\w*(\ ){1}\S*){0,1}room(\ \+\ [0-9]){0,1}$`)
+	shzm   *regexp.Regexp = regexp.MustCompile(`(?i)[0-9\,]*\s*shazams`)
+	sns    *regexp.Regexp = regexp.MustCompile(`(?i)sonos`)
+	snsrad *regexp.Regexp = regexp.MustCompile(`(?i)on sonos radio`)
+	sp     *regexp.Regexp = regexp.MustCompile(` `)
+	sptfy  *regexp.Regexp = regexp.MustCompile(`[\n\s]{1}Spotify\n`)
+	swpup  *regexp.Regexp = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
+	wd     *regexp.Regexp = regexp.MustCompile(`\w+`)
 )
 
 func dedup(value string) string {
@@ -107,8 +110,6 @@ func DetectText(imagePath string) (string, error) {
 		text = annotations[0].Description
 	}
 
-	fmt.Println(text)
-
 	return text, nil
 }
 
@@ -116,26 +117,33 @@ func DetectText(imagePath string) (string, error) {
 // and song title match from the annotation
 func SongArtistAndName(annotation string) string {
 	var (
-		lines         []string
-		songParts     []string
-		subAnnotation string
+		lines     []string
+		songParts []string
+		//subAnnotation string
 	)
 
-	isSpotify := sptfy.MatchString(annotation)
+	fmt.Println(annotation)
+
+	isPRP := prp.MatchString(annotation)
+	isShazam := shzm.MatchString(annotation)
+	isSonosRadio := snsrad.MatchString(annotation)
+	isSpotify := !isShazam && sptfy.MatchString(annotation)
 
 	// Can safely remove all lines above the first occurrence
 	// of Portland Radio Project in the annotation given
 	// the location of the song title and artist name in
 	// the screen capture
-	loc := prp.FindStringIndex(annotation)
+	if isPRP {
+		loc := prp.FindStringIndex(annotation)
 
-	if len(loc) > 1 {
-		subAnnotation = annotation[loc[1]:]
-	} else {
-		subAnnotation = annotation
+		if len(loc) > 1 {
+			lines = cr.Split(annotation[loc[1]:], -1)
+		}
 	}
 
-	lines = cr.Split(subAnnotation, -1)
+	if lines == nil {
+		lines = cr.Split(annotation, -1)
+	}
 
 	if len(lines) == 1 {
 		return lines[0]
@@ -147,6 +155,50 @@ func SongArtistAndName(annotation string) string {
 			continue
 		}
 
+		// when Shazam or Sonos radio, continue until near song artist and name
+		if isShazam || isSonosRadio {
+			if shzm.MatchString(line) || snsrad.MatchString(line) {
+				artist := lines[i-1]
+				name := lines[i-2]
+
+				// Shazam wraps multiple artists
+				if name[len(name)-1:] == "&" {
+					artist = fmt.Sprintf("%s %s", name, artist)
+					name = lines[i-3]
+				}
+
+				// Sonos radio has the 3 dots
+				if jnk.MatchString(name) {
+					name = lines[i-3]
+				}
+
+				return strings.ToLower(fmt.Sprintf("%s %s", artist, name))
+			}
+
+			continue
+		}
+
+		// when Spotify, continue until near the song artist and name
+		if isSpotify {
+			// check to see if two numbers appear on the same line (scrubber)
+			// and that the song is playing from Spotify
+			if num.MatchString(line) && num.MatchString(lines[i+1]) {
+				artist := lines[i+3]
+				name := lines[i+2]
+
+				// handle scenarios where the 3 dots is detected in the image
+				if artist == `` || jnk.MatchString(artist) {
+					artist = lines[i+4]
+				}
+
+				// safe to clear everything prior to this point because the
+				// song detail begins below (in fact, the song name is next)
+				return formatSongFromSpotify(artist, name)
+			}
+
+			continue
+		}
+
 		// if the song divider is present on this line,
 		// return directly
 		if div.MatchString(line) {
@@ -155,14 +207,6 @@ func SongArtistAndName(annotation string) string {
 
 		// filter out Numbers only
 		if num.MatchString(line) {
-			// check to see if two numbers appear on the same line (scrubber)
-			// and that the song is playing from Spotify
-			if isSpotify && num.MatchString(lines[i+1]) {
-				// safe to clear everything prior to this point because the
-				// song detail begins below (in fact, the song name is next)
-				return formatSongFromSpotify(lines[i+3], lines[i+2])
-			}
-
 			continue
 		}
 

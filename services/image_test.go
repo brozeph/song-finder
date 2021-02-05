@@ -34,22 +34,7 @@ Settings
 	}
 }
 
-func TestSongArtistAndNameFromPRPLockScreen(t *testing.T) {
-	testAnnotation := `
-Portland Radio Project
-Pontland Radio Prjeat
-The Dig - Soul of the Night
-
-`
-	expected := "the dig soul of the night"
-	song := services.SongArtistAndName(testAnnotation)
-
-	if song != expected {
-		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
-	}
-}
-
-func TestSongArtistAndNameFromPRPDifferentRooms(t *testing.T) {
+func TestSongArtistAndNameFromPRP2(t *testing.T) {
 	testAnnotation := `
 3:40 1
 Move + Den
@@ -71,8 +56,53 @@ Search
 Settings
 
 `
-
 	expected := "blisses b twin geeks"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromPRPLockScreen(t *testing.T) {
+	testAnnotation := `
+Portland Radio Project
+Pontland Radio Prjeat
+The Dig - Soul of the Night
+
+`
+	expected := "the dig soul of the night"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromShazam(t *testing.T) {
+	testAnnotation := `
+SONGWRITER POF
+ou
+orden
+Campe
+cemn
+a Pen
+yougs dhe
+In My Atmosphere
+Raphael Lake & Eric Brooks &
+Camden Rose
+2 7,392 Shazams
+A Spotify
+ОPEN
+ADD TO
+TOP SONGS
+Ready
+Raprerel Lake QAaronLovy &...
+INDIE SOUL
+Lone
+
+`
+	expected := "raphael lake & eric brooks & camden rose in my atmosphere"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -82,14 +112,25 @@ Settings
 
 func TestSongArtistAndNameFromSonosRadio(t *testing.T) {
 	testAnnotation := `
+6:31 1
 Guest Room
+Giddy
+• . .
 Jessy Lanza
 Sunset Fuzz on SONOS Radio
+K
+>)
+☆
 Мy Sonos
+Browse
+Rooms
+Search
+Settings
+JESSY LANZA
 Pull my hair back
 
 `
-	expected := "jessy lanza pull my hair back"
+	expected := "jessy lanza giddy"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -97,13 +138,25 @@ Pull my hair back
 	}
 }
 
-func TestSongArtistAndNameFromSpotify(t *testing.T) {
+func TestSongArtistAndNameFromSonosRadio2(t *testing.T) {
 	testAnnotation := `
-SG Lewis
-SG Lewis • Chemicals
-Playing from E Spotify
+6:16 1
+Guest Room
+Obsessed
+• . .
+Hatchie
+Sunset Fuzz on SONOS Radio
+K
+||
+>)
+☆
+Мy Sonos
+Browse
+Rooms
+Search
+Settings
 `
-	expected := "sg lewis chemicals"
+	expected := "hatchie obsessed"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
@@ -126,7 +179,21 @@ Swipe up to ópen
 	}
 }
 
-func TestSongArtistAndNameFromSpotifyInSonos(t *testing.T) {
+func TestSongArtistAndNameFromSpotifyMinimal(t *testing.T) {
+	testAnnotation := `
+SG Lewis
+SG Lewis • Chemicals
+Playing from E Spotify
+`
+	expected := "sg lewis chemicals"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromSpotify(t *testing.T) {
 	testAnnotation := `
 6:46 1
 Kitchen + 2
@@ -145,6 +212,37 @@ Spotify
 
 `
 	expected := "sonny alven wasted youth"
+	song := services.SongArtistAndName(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromSpotify2(t *testing.T) {
+	testAnnotation := `
+6:06
+Guest Room + Den + 4
+CD 100%
+ZD)
+TRUE COLORS
+6:55
+-0:28
+Раpercut
+• • •
+Zedd • True Colors
+Playing from 6 Spotify
+K |
+») –
+☆
+Мy Sonos
+Browse
+Rooms
+Search
+Settings
+
+`
+	expected := "zedd papercut"
 	song := services.SongArtistAndName(testAnnotation)
 
 	if song != expected {
