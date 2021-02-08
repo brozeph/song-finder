@@ -7,30 +7,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/brozeph/song-finder/services"
+	finder "github.com/brozeph/song-finder/internal"
+	"github.com/ttacon/chalk"
 )
-
-var imageExtensions = []string{".png", ".jpg", ".jpeg"}
-
-func isImage(filePath string) bool {
-	var fileExt = strings.ToLower(filepath.Ext(filePath))
-
-	for _, ext := range imageExtensions {
-		if fileExt == ext {
-			return true
-		}
-	}
-
-	return false
-}
 
 func main() {
 	var (
-		imageFiles    []string
 		imageFilePath string
 		playlistName  string
 	)
@@ -40,34 +23,23 @@ func main() {
 	flag.Parse()
 
 	// find all of the image files
-	err := filepath.Walk(imageFilePath, func(path string, info os.FileInfo, err error) error {
-		if isImage(path) && info.Size() > 0 {
-			imageFiles = append(imageFiles, path)
-		}
-
-		return nil
-	})
+	processedFiles, err := finder.Begin(imageFilePath)
 
 	if err != nil {
 		panic(err)
 	}
 
-	for _, imageFile := range imageFiles {
-		fmt.Println("Processing image at:", imageFile)
+	fmt.Println()
+	fmt.Printf(
+		"Process completed for %s%d%s files",
+		chalk.Blue,
+		len(processedFiles),
+		chalk.Reset)
 
-		text, err := services.DetectText(imageFile)
-		if err != nil {
-			panic(err)
-		}
-
-		song := services.SongArtistAndName(text)
-		track, err := services.Search(song)
-
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(song)
-		fmt.Println(track)
+	for _, file := range processedFiles {
+		fmt.Println(chalk.Blue, "File:", chalk.Reset, file.ImagePath)
+		fmt.Println(chalk.Red, "Song:", chalk.Reset, file.SongArtistAndName)
+		fmt.Println(chalk.Green, "Spotify URI:", chalk.Reset, chalk.Blue, file.SpotifyTrack.URI, chalk.Reset)
+		fmt.Println()
 	}
 }
