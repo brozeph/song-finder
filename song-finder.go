@@ -5,25 +5,33 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"os"
 
 	finder "github.com/brozeph/song-finder/internal"
+	"github.com/jessevdk/go-flags"
 	"github.com/ttacon/chalk"
 )
 
+type cmdlineOptions struct {
+	ImageFilePath string `short:"p" long:"path" description:"Path to image files" required:"true"`
+	PlaylistName  string `short:"n" long:"playlist" description:"Name of Spotify playlist to create" required:"true"`
+}
+
 func main() {
 	var (
-		imageFilePath string
-		playlistName  string
+		options cmdlineOptions
+		parser  = flags.NewParser(&options, flags.Default)
 	)
 
-	flag.StringVar(&imageFilePath, "path", "", "Specify path to image files.")
-	flag.StringVar(&playlistName, "playlist", "", "Provide name for Spotify playlist to create")
-	flag.Parse()
+	if _, err := parser.Parse(); err != nil {
+		parser.WriteHelp(os.Stdout)
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// find all of the image files
-	processedFiles, err := finder.Begin(imageFilePath)
+	processedFiles, err := finder.Begin(options.ImageFilePath)
 
 	if err != nil {
 		panic(err)

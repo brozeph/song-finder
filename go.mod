@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.75.0
+	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/mattn/go-tty v0.0.3 // indirect
 	github.com/superhawk610/bar v0.0.2
 	github.com/superhawk610/terminal v0.1.0 // indirect
