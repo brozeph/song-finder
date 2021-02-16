@@ -124,8 +124,6 @@ func SongArtistAndName(annotation string) string {
 		songParts []string
 	)
 
-	// fmt.Println(annotation)
-
 	isPandora := pndra.MatchString(annotation)
 	isPRP := prp.MatchString(annotation)
 	isShazam := shzm.MatchString(annotation)

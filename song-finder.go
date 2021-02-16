@@ -10,6 +10,8 @@ import (
 
 	finder "github.com/brozeph/song-finder/internal"
 	"github.com/jessevdk/go-flags"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/ttacon/chalk"
 )
 
@@ -19,14 +21,26 @@ type cmdlineOptions struct {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+
+	/*
+		song, err := services.Search("Beck Mixed Business")
+		if err != nil {
+			log.Error().Err(err).Msg("")
+			panic(err)
+		}
+		log.Info().Str("Spotify URI", song.ID.String()).Msg("song found")
+	*/
+
 	var (
 		options cmdlineOptions
 		parser  = flags.NewParser(&options, flags.Default)
 	)
 
+	// parse command line arguments
 	if _, err := parser.Parse(); err != nil {
-		parser.WriteHelp(os.Stdout)
-		fmt.Println(err)
+		log.Error().Err(err).Msg("")
 		os.Exit(1)
 	}
 
