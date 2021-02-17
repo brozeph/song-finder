@@ -9,6 +9,7 @@ import (
 	"os"
 
 	finder "github.com/brozeph/song-finder/internal"
+	"github.com/brozeph/song-finder/services"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -22,16 +23,16 @@ type cmdlineOptions struct {
 
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
-	/*
-		song, err := services.Search("Beck Mixed Business")
-		if err != nil {
-			log.Error().Err(err).Msg("")
-			panic(err)
-		}
-		log.Info().Str("Spotify URI", song.ID.String()).Msg("song found")
-	*/
+	//*
+	song, err := services.Search("Beck Mixed Business")
+	if err != nil {
+		log.Error().Err(err).Msg("")
+		panic(err)
+	}
+	log.Info().Str("Spotify URI", song.ID.String()).Msg("song found")
+	//*/
 
 	var (
 		options cmdlineOptions

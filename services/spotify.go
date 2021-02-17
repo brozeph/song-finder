@@ -43,13 +43,13 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 		oauth2.SetAuthURLParam("code_verifier", codeVerifier))
 	if err != nil {
 		http.Error(w, "couldn't get token", http.StatusForbidden)
-		log.Error().Err(err).Msg("couldn't get token")
+		log.Debug().Err(err).Msg("couldn't get token")
 		panic(err)
 	}
 
 	if st := r.FormValue("state"); st != state {
 		http.NotFound(w, r)
-		log.Error().Err(err).Str("state", state).Str("actual state", st).Msg("state mismatch")
+		log.Debug().Err(err).Str("state", state).Str("actual state", st).Msg("state mismatch")
 	}
 
 	cl := auth.NewClient(tok)
@@ -65,11 +65,11 @@ func encode(msg []byte) string {
 	return encoded
 }
 
-func ensureClient() error {
+func ensureClient() (*spotify.Client, error) {
 	select {
-	case _, ok := <-client:
+	case cl, ok := <-client:
 		if ok {
-			return nil
+			return cl, nil
 		}
 
 		// closed
@@ -82,14 +82,14 @@ func ensureClient() error {
 	// ensurer state, codeChallenge and codeVerifier are set
 	log.Debug().Msg("setting OAuth params")
 	if err := setOauthParams(); err != nil {
-		return err
+		return nil, err
 	}
 
 	swg := &sync.WaitGroup{}
 	swg.Add(1)
 
 	srv := startServer(swg)
-	log.Info().Msg("http server started for Spotify authentication flow")
+	log.Debug().Msg("http server started for Spotify authentication flow")
 
 	url := auth.AuthURLWithOpts(
 		state,
@@ -97,13 +97,13 @@ func ensureClient() error {
 		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
 	)
 
-	log.Info().Str("URL", url).Msg("Spotfy login URL created")
+	log.Debug().Str("URL", url).Msg("Spotfy login URL created")
 	browser.OpenURL(url)
 
 	cl := <-client
 
 	if err := srv.Shutdown(context.TODO()); err != nil {
-		return err
+		return nil, err
 	}
 
 	// wait for goroutine in startServer to complete
@@ -111,11 +111,11 @@ func ensureClient() error {
 
 	user, err := cl.CurrentUser()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug().Str("User.ID", user.ID).Msg("user authenticated")
-	return nil
+	return cl, nil
 }
 
 /*
@@ -185,7 +185,7 @@ func setOauthParams() error {
 }
 
 func startServer(wg *sync.WaitGroup) *http.Server {
-	srv := &http.Server{Addr: "8080"}
+	srv := &http.Server{Addr: ":8080"}
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Debug().Str("URL", r.URL.String()).Msg("received request")
@@ -195,8 +195,8 @@ func startServer(wg *sync.WaitGroup) *http.Server {
 		defer wg.Done()
 
 		if err := srv.ListenAndServe(); err != nil {
-			log.Error().Err(err).Msg("")
-			panic(err)
+			log.Debug().Err(err).Msg("")
+			// panic(err)
 		}
 	}()
 
@@ -223,7 +223,8 @@ func CreatePlaylist(user string, name string, tracks []spotify.SimpleTrack) erro
 // the first matching result (presumably the most relevant) if
 // a match is found
 func Search(song string) (spotify.SimpleTrack, error) {
-	if err := ensureClient(); err != nil {
+	client, err := ensureClient()
+	if err != nil {
 		return spotify.SimpleTrack{}, err
 	}
 
@@ -231,16 +232,23 @@ func Search(song string) (spotify.SimpleTrack, error) {
 		return spotify.SimpleTrack{}, nil
 	}
 
-	cl := <-client
+	log.Debug().Str("song", song).Msg("searching for song")
 
-	results, err := cl.Search(song, spotify.SearchTypeTrack)
+	results, err := client.Search(song, spotify.SearchTypeTrack)
 	if err != nil {
+		log.Debug().Str("song", song).Stack().Err(err).Msg("error searching for song")
 		return spotify.SimpleTrack{}, err
 	}
 
 	if results.Tracks == nil || results.Tracks.Total == 0 {
+		log.Debug().Str("song", song).Msg("no matches found for song")
 		return spotify.SimpleTrack{}, nil
 	}
+
+	log.Debug().
+		Str("song", song).
+		Int("matches", results.Tracks.Total).
+		Msg("match(es) found while searching for song")
 
 	return results.Tracks.Tracks[0].SimpleTrack, nil
 }
