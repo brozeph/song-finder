@@ -23,7 +23,7 @@ type cmdlineOptions struct {
 
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
 	//*
 	song, err := services.Search("Beck Mixed Business")

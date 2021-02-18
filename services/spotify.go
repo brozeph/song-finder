@@ -30,7 +30,8 @@ const (
 
 var (
 	auth          = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
-	client        = make(chan *spotify.Client)
+	cch           = make(chan *spotify.Client)
+	client        *spotify.Client
 	state         string
 	codeChallenge string
 	codeVerifier  string
@@ -54,7 +55,7 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	cl := auth.NewClient(tok)
 	fmt.Fprintf(w, "Login Completed!")
-	client <- &cl
+	cch <- &cl
 }
 
 func encode(msg []byte) string {
@@ -66,17 +67,8 @@ func encode(msg []byte) string {
 }
 
 func ensureClient() (*spotify.Client, error) {
-	select {
-	case cl, ok := <-client:
-		if ok {
-			return cl, nil
-		}
-
-		// closed
-		log.Debug().Msg("client channel is closed")
-	default:
-		// not ready
-		log.Debug().Msg("client channel is not ready")
+	if client != nil {
+		return client, nil
 	}
 
 	// ensurer state, codeChallenge and codeVerifier are set
@@ -100,10 +92,11 @@ func ensureClient() (*spotify.Client, error) {
 	log.Debug().Str("URL", url).Msg("Spotfy login URL created")
 	browser.OpenURL(url)
 
-	cl := <-client
+	cl := <-cch
+	client = cl
 
 	if err := srv.Shutdown(context.TODO()); err != nil {
-		return nil, err
+		return client, err
 	}
 
 	// wait for goroutine in startServer to complete
@@ -111,11 +104,11 @@ func ensureClient() (*spotify.Client, error) {
 
 	user, err := cl.CurrentUser()
 	if err != nil {
-		return nil, err
+		return client, err
 	}
 
 	log.Debug().Str("User.ID", user.ID).Msg("user authenticated")
-	return cl, nil
+	return client, nil
 }
 
 /*
@@ -206,13 +199,16 @@ func startServer(wg *sync.WaitGroup) *http.Server {
 // CreatePlaylist creates a new Spotify playlist with the
 // supplied tracks
 func CreatePlaylist(user string, name string, tracks []spotify.SimpleTrack) error {
-	cl := <-client
-	_, err := cl.CreatePlaylistForUser(
+	_, err := ensureClient()
+	if err != nil {
+		return err
+	}
+
+	if _, err := client.CreatePlaylistForUser(
 		user,
 		name,
 		"Playlist created by song-finder using image detection of screenshots",
-		false)
-	if err != nil {
+		false); err != nil {
 		return err
 	}
 
@@ -223,7 +219,7 @@ func CreatePlaylist(user string, name string, tracks []spotify.SimpleTrack) erro
 // the first matching result (presumably the most relevant) if
 // a match is found
 func Search(song string) (spotify.SimpleTrack, error) {
-	client, err := ensureClient()
+	_, err := ensureClient()
 	if err != nil {
 		return spotify.SimpleTrack{}, err
 	}
