@@ -1,4 +1,4 @@
-// Progam that reads image files from a specified file path,
+// Program that reads image files from a specified file path,
 // then uses Google's ML cloud API for reading text, and
 // finally queries Spotify to find matches and create a
 // playlist
@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	finder "github.com/brozeph/song-finder/internal"
+	"github.com/brozeph/song-finder/internal/repositories"
+	"github.com/brozeph/song-finder/internal/services"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -44,8 +46,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// scaffold up the app
+	screenshotRepository := repositories.NewScreenshotRepository()
+	spotifyRepository := repositories.NewSpotifyRepository()
+	screenshotService := services.NewScreenshotService(screenshotRepository, spotifyRepository)
+
 	// find all of the image files
-	processedFiles, err := finder.Begin(options.ImageFilePath)
+	screenshots, err := screenshotService.Begin(options.ImageFilePath)
 
 	if err != nil {
 		panic(err)
@@ -55,13 +62,13 @@ func main() {
 	fmt.Printf(
 		"Process completed for %s%d%s files",
 		chalk.Blue,
-		len(processedFiles),
+		len(screenshots),
 		chalk.Reset)
 
-	for _, file := range processedFiles {
-		fmt.Println(chalk.Blue, "File:", chalk.Reset, file.ImagePath)
-		fmt.Println(chalk.Red, "Song:", chalk.Reset, file.SongArtistAndName)
-		fmt.Println(chalk.Green, "Spotify URI:", chalk.Reset, chalk.Blue, file.SpotifyTrack.URI, chalk.Reset)
+	for _, ss := range screenshots {
+		fmt.Println(chalk.Blue, "File:", chalk.Reset, ss.Path)
+		fmt.Println(chalk.Red, "Song:", chalk.Reset, ss.SongSearchTerm)
+		fmt.Println(chalk.Green, "Spotify URI:", chalk.Reset, chalk.Blue, ss.SpotifyTrack.URI, chalk.Reset)
 		fmt.Println()
 	}
 }

@@ -1,17 +1,16 @@
-// Package services provides utilities for analyzing
-// images of songs for the purposes of finding the
-// Spotify URI
 package services
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
-	vision "cloud.google.com/go/vision/apiv1"
+	"github.com/brozeph/song-finder/internal/interfaces"
+	"github.com/brozeph/song-finder/internal/models"
+
+	"github.com/superhawk610/bar"
+	"github.com/ttacon/chalk"
 )
 
 var (
@@ -35,90 +34,73 @@ var (
 	wd     *regexp.Regexp = regexp.MustCompile(`\w+`)
 )
 
-func formatSongFromSpotifyOrPandora(artist string, name string) string {
-	loc := dot.FindStringIndex(artist)
+type screenshotService struct {
+	screenshotRepository interfaces.IScreenshotRepository
+	spotifyRepository    interfaces.ISpotifyRepository
+}
 
-	if len(loc) > 1 {
-		artist = artist[:loc[0]]
+// NewScreenshotService returns new instance of an IScreenshotService
+func NewScreenshotService(ssr interfaces.IScreenshotRepository, sr interfaces.ISpotifyRepository) interfaces.IScreenshotService {
+	return &screenshotService{
+		screenshotRepository: ssr,
+		spotifyRepository:    sr,
+	}
+}
+
+// Begin starts processing the supplied path
+// and reading image files
+func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
+	var screenshots []models.Screenshot
+
+	// load screenshot paths from screenshotRepository
+	imageFiles, err := ss.screenshotRepository.FindInPath(path)
+	if err != nil {
+		return screenshots, err
 	}
 
-	return sanitizeSong(fmt.Sprintf("%s %s", artist, name))
-}
+	b := bar.NewWithOpts(
+		bar.WithDimensions(len(imageFiles), len(imageFiles)),
+		bar.WithFormat(
+			fmt.Sprintf(
+				" %sprocessing...%s :percent :bar %s:eta%s     ",
+				chalk.Blue,
+				chalk.Reset,
+				chalk.Green,
+				chalk.Reset,
+			),
+		),
+	)
 
-func sanitizeSong(song string) string {
-	// convert to lowercase
-	song = strings.ToLower(song)
+	for _, imageFile := range imageFiles {
+		b.Tick()
 
-	// remove weird chars (like dot symbols)
-	song = stripRunes(song)
-
-	// remove multiple spaces
-	song = strings.ReplaceAll(song, "  ", " ")
-
-	// remove (feat. XXXX) wording
-	song = feat.ReplaceAllString(song, "")
-
-	// removing leading and trailing space
-	song = strings.TrimSpace(song)
-
-	// remove the divider char (-) if found
-	song = div.ReplaceAllString(song, "")
-
-	return song
-}
-
-func stripRunes(value string) string {
-	stripped := []rune{}
-
-	for _, ch := range value {
-		if utf8.RuneLen(ch) > 2 {
-			continue
+		text, err := ss.screenshotRepository.DetectText(imageFile)
+		if err != nil {
+			return nil, err
 		}
 
-		stripped = append(stripped, ch)
+		song := ss.SearchTerm(text)
+		track, err := ss.spotifyRepository.Search(song)
+
+		if err != nil {
+			return nil, err
+		}
+
+		screenshots = append(screenshots, models.Screenshot{
+			Path:           imageFile,
+			SongSearchTerm: song,
+			SpotifyTrack:   track,
+		})
 	}
 
-	return string(stripped)
+	b.Done()
+
+	return screenshots, nil
 }
 
-// DetectText accepts an image path, reads the image and
-// requests to retrieve text annotations from the Google Cloud
-// vision API
-func DetectText(imagePath string) (string, error) {
-	text := ""
-	ctx := context.Background()
-
-	f, err := os.Open(imagePath)
-	if err != nil {
-		return text, err
-	}
-
-	ifr, err := vision.NewImageFromReader(f)
-	if err != nil {
-		return text, err
-	}
-
-	// for each image, upload to Google image analysis
-	client, err := vision.NewImageAnnotatorClient(ctx)
-	if err != nil {
-		return text, err
-	}
-
-	annotations, err := client.DetectTexts(ctx, ifr, nil, 10)
-	if err != nil {
-		return text, err
-	}
-
-	if annotations[0] != nil {
-		text = annotations[0].Description
-	}
-
-	return text, nil
-}
-
-// SongArtistAndName returns a possible artist and
+// SearchTerm returns a possible artist and
 // and song title match from the annotation
-func SongArtistAndName(annotation string) string {
+func (ss *screenshotService) SearchTerm(annotation string) string {
 	var (
 		lines     []string
 		songParts []string
@@ -251,4 +233,53 @@ func SongArtistAndName(annotation string) string {
 
 	// join the artist and song name for search
 	return sanitizeSong(strings.Join(songParts, " "))
+}
+
+func formatSongFromSpotifyOrPandora(artist string, name string) string {
+	loc := dot.FindStringIndex(artist)
+
+	if len(loc) > 1 {
+		artist = artist[:loc[0]]
+	}
+
+	return sanitizeSong(fmt.Sprintf("%s %s", artist, name))
+}
+
+func sanitizeSong(song string) string {
+	// convert to lowercase
+	song = strings.ToLower(song)
+
+	// remove weird chars (like dot symbols)
+	song = stripRunes(song)
+
+	// remove multiple spaces
+	song = strings.ReplaceAll(song, "  ", " ")
+
+	// swap & with ,
+	song = strings.ReplaceAll(song, " &", ",")
+
+	// remove (feat. XXXX) wording
+	song = feat.ReplaceAllString(song, "")
+
+	// removing leading and trailing space
+	song = strings.TrimSpace(song)
+
+	// remove the divider char (-) if found
+	song = div.ReplaceAllString(song, "")
+
+	return song
+}
+
+func stripRunes(value string) string {
+	stripped := []rune{}
+
+	for _, ch := range value {
+		if utf8.RuneLen(ch) > 2 {
+			continue
+		}
+
+		stripped = append(stripped, ch)
+	}
+
+	return string(stripped)
 }

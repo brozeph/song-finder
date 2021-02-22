@@ -3,8 +3,31 @@ package services_test
 import (
 	"testing"
 
-	"github.com/brozeph/song-finder/services"
+	"github.com/brozeph/song-finder/internal/services"
+	"github.com/zmb3/spotify"
 )
+
+type screenshotRepo struct{}
+
+func (r screenshotRepo) DetectText(path string) (string, error) {
+	return "", nil
+}
+
+func (r screenshotRepo) FindInPath(path string) ([]string, error) {
+	return nil, nil
+}
+
+type spotifyRepo struct{}
+
+func (r spotifyRepo) CreatePlaylist(user string, name string, tracks []spotify.SimpleTrack) error {
+	return nil
+}
+
+func (r spotifyRepo) Search(searchTerm string) (spotify.SimpleTrack, error) {
+	return spotify.SimpleTrack{}, nil
+}
+
+var s = services.NewScreenshotService(&screenshotRepo{}, &spotifyRepo{})
 
 func TestSongArtistAndNameFromPRP(t *testing.T) {
 	testAnnotation := `
@@ -27,7 +50,7 @@ Settings
 
 `
 	expected := "reverend freakchild personal jesus (on the..."
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -57,7 +80,7 @@ Settings
 
 `
 	expected := "blisses b twin geeks"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -79,7 +102,7 @@ K]
 !!
 `
 	expected := "yellowstraps goldress"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -106,7 +129,7 @@ Search
 Settings
 `
 	expected := "rac pron r.a.c. this song feat rostam"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -121,7 +144,7 @@ The Dig - Soul of the Night
 
 `
 	expected := "the dig soul of the night"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -152,7 +175,7 @@ Lone
 
 `
 	expected := "raphael lake & eric brooks & camden rose in my atmosphere"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -180,7 +203,7 @@ Pull my hair back
 
 `
 	expected := "jessy lanza giddy"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -206,7 +229,7 @@ Search
 Settings
 `
 	expected := "hatchie obsessed"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -221,7 +244,7 @@ Pnthnt Ruda Pge Smallpools - Stumblin' Home
 Swipe up to ópen
 `
 	expected := "pnthnt ruda pge smallpools stumblin' home"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -240,7 +263,7 @@ SG Lewis • Chemicals
 Playing from E Spotify
 `
 	expected := "sg lewis chemicals"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -266,7 +289,7 @@ Spotify
 
 `
 	expected := "sonny alven wasted youth"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -297,7 +320,7 @@ Settings
 
 `
 	expected := "zedd раpercut"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
@@ -323,7 +346,7 @@ K]
 
 `
 	expected := "a fine frenzy hope for the hopeless"
-	song := services.SongArtistAndName(testAnnotation)
+	song := s.SearchTerm(testAnnotation)
 
 	if song != expected {
 		t.Errorf("expected song result (%s) from annotation was not matched: %s", expected, song)
