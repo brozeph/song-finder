@@ -26,15 +26,6 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
-	/*
-		song, err := services.Search("Beck Mixed Business")
-		if err != nil {
-			log.Error().Err(err).Msg("")
-			panic(err)
-		}
-		log.Info().Str("Spotify URI", song.ID.String()).Msg("song found")
-		//*/
-
 	var (
 		options cmdlineOptions
 		parser  = flags.NewParser(&options, flags.Default)
@@ -49,7 +40,7 @@ func main() {
 	// scaffold up the app
 	screenshotRepository := repositories.NewScreenshotRepository()
 	spotifyRepository := repositories.NewSpotifyRepository()
-	screenshotService := services.NewScreenshotService(screenshotRepository, spotifyRepository)
+	screenshotService := services.NewScreenshotService(&screenshotRepository, &spotifyRepository)
 
 	// find all of the image files
 	screenshots, err := screenshotService.Begin(options.ImageFilePath)

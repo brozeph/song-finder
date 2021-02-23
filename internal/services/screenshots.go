@@ -35,12 +35,12 @@ var (
 )
 
 type screenshotService struct {
-	screenshotRepository interfaces.IScreenshotRepository
-	spotifyRepository    interfaces.ISpotifyRepository
+	screenshotRepository *interfaces.IScreenshotRepository
+	spotifyRepository    *interfaces.ISpotifyRepository
 }
 
 // NewScreenshotService returns new instance of an IScreenshotService
-func NewScreenshotService(ssr interfaces.IScreenshotRepository, sr interfaces.ISpotifyRepository) interfaces.IScreenshotService {
+func NewScreenshotService(ssr *interfaces.IScreenshotRepository, sr *interfaces.ISpotifyRepository) interfaces.IScreenshotService {
 	return &screenshotService{
 		screenshotRepository: ssr,
 		spotifyRepository:    sr,
@@ -50,10 +50,14 @@ func NewScreenshotService(ssr interfaces.IScreenshotRepository, sr interfaces.IS
 // Begin starts processing the supplied path
 // and reading image files
 func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
-	var screenshots []models.Screenshot
+	var (
+		screenshots []models.Screenshot
+		ssr         = *ss.screenshotRepository
+		spr         = *ss.spotifyRepository
+	)
 
 	// load screenshot paths from screenshotRepository
-	imageFiles, err := ss.screenshotRepository.FindInPath(path)
+	imageFiles, err := ssr.FindInPath(path)
 	if err != nil {
 		return screenshots, err
 	}
@@ -74,13 +78,13 @@ func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
 	for _, imageFile := range imageFiles {
 		b.Tick()
 
-		text, err := ss.screenshotRepository.DetectText(imageFile)
+		text, err := ssr.DetectText(imageFile)
 		if err != nil {
 			return nil, err
 		}
 
 		song := ss.SearchTerm(text)
-		track, err := ss.spotifyRepository.Search(song)
+		track, err := spr.Search(song)
 
 		if err != nil {
 			return nil, err

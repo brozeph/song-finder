@@ -27,7 +27,7 @@ func (r spotifyRepo) Search(searchTerm string) (spotify.SimpleTrack, error) {
 	return spotify.SimpleTrack{}, nil
 }
 
-var s = services.NewScreenshotService(&screenshotRepo{}, &spotifyRepo{})
+var s = services.NewScreenshotService(nil, nil)
 
 func TestSongArtistAndNameFromPRP(t *testing.T) {
 	testAnnotation := `
