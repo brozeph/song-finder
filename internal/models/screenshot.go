@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/zmb3/spotify"
 	"time"
+
+	"github.com/zmb3/spotify"
 )
 
 // Screenshot contains the details / state for every

@@ -2,64 +2,83 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/brozeph/song-finder/internal/interfaces"
 	"github.com/brozeph/song-finder/internal/models"
 
+	"github.com/rs/zerolog/log"
 	"github.com/superhawk610/bar"
 	"github.com/ttacon/chalk"
 )
 
 var (
-	cr     *regexp.Regexp = regexp.MustCompile(`\n`)
-	div    *regexp.Regexp = regexp.MustCompile(`(\b|\.)(\ \-\ ){1}(\b)`)
-	dot    *regexp.Regexp = regexp.MustCompile(`\s?•\s`)
-	exs    *regexp.Regexp = regexp.MustCompile(`\s{2,}`)
-	feat   *regexp.Regexp = regexp.MustCompile(`(?i)\(feat\. [.\s\d\w]*\)`)
-	jnk    *regexp.Regexp = regexp.MustCompile(`([•\.]\s?){3}`)
-	num    *regexp.Regexp = regexp.MustCompile(`^[\d\W]*$`)
-	pndra  *regexp.Regexp = regexp.MustCompile(`(?i)\bpandora\b`)
-	ply    *regexp.Regexp = regexp.MustCompile(`(?i)^playing from`)
-	prp    *regexp.Regexp = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
-	rm     *regexp.Regexp = regexp.MustCompile(`(?i)(\w*(\ ){1}\S*){0,1}room(\ \+\ [0-9]){0,1}$`)
-	shzm   *regexp.Regexp = regexp.MustCompile(`(?i)[0-9\,]*\s*shazams`)
-	sns    *regexp.Regexp = regexp.MustCompile(`(?i)sonos`)
-	snsrad *regexp.Regexp = regexp.MustCompile(`(?i)on sonos radio`)
-	sp     *regexp.Regexp = regexp.MustCompile(` `)
-	sptfy  *regexp.Regexp = regexp.MustCompile(`(?i)[\n\s]{1}spotify\b`)
-	swpup  *regexp.Regexp = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
-	wd     *regexp.Regexp = regexp.MustCompile(`\w+`)
+	cr  = regexp.MustCompile(`\n`)
+	div = regexp.MustCompile(`(\b|\.)( - )(\b)`)
+	dot = regexp.MustCompile(`\s?•\s`)
+	//exs     = regexp.MustCompile(`\s{2,}`)
+	feat   = regexp.MustCompile(`(?i)\(feat\. [.\s\d\w]*\)`)
+	jnk    = regexp.MustCompile(`([•.]\s?){3}`)
+	num    = regexp.MustCompile(`^[\d\W]*$`)
+	pndra  = regexp.MustCompile(`(?i)\bpandora\b`)
+	ply    = regexp.MustCompile(`(?i)^playing from`)
+	prp    = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
+	rm     = regexp.MustCompile(`(?i)(\w* \S*)?room( \+ [0-9])?$`)
+	shzm   = regexp.MustCompile(`(?i)[0-9,]*\s*shazams`)
+	sns    = regexp.MustCompile(`(?i)sonos`)
+	snsrad = regexp.MustCompile(`(?i)on sonos radio`)
+	sp     = regexp.MustCompile(` `)
+	sptfy  = regexp.MustCompile(`(?i)[\n\s]spotify\b`)
+	swpup  = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
+	wd     = regexp.MustCompile(`\w+`)
 )
 
 type screenshotService struct {
 	screenshotRepository *interfaces.IScreenshotRepository
 	spotifyRepository    *interfaces.ISpotifyRepository
+	stateRepository      *interfaces.IStateRepository
 }
 
 // NewScreenshotService returns new instance of an IScreenshotService
-func NewScreenshotService(ssr *interfaces.IScreenshotRepository, sr *interfaces.ISpotifyRepository) interfaces.IScreenshotService {
+func NewScreenshotService(
+	ssr *interfaces.IScreenshotRepository,
+	spr *interfaces.ISpotifyRepository,
+	str *interfaces.IStateRepository) interfaces.IScreenshotService {
+
 	return &screenshotService{
 		screenshotRepository: ssr,
-		spotifyRepository:    sr,
+		spotifyRepository:    spr,
+		stateRepository:      str,
 	}
 }
 
 // Begin starts processing the supplied path
 // and reading image files
-func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
+func (ss *screenshotService) Begin(path string) (models.State, error) {
 	var (
-		screenshots []models.Screenshot
-		ssr         = *ss.screenshotRepository
-		spr         = *ss.spotifyRepository
+		ssr   = *ss.screenshotRepository
+		spr   = *ss.spotifyRepository
+		state models.State
+		str   = *ss.stateRepository
 	)
+
+	if err := str.Load(state); err != nil {
+		if !os.IsNotExist(err) {
+			log.Fatal().Stack().Err(err).Msg("unable to load state")
+		}
+
+		state = models.State{
+			Screenshots:     []models.Screenshot{},
+			SoftwareVersion: softwareVersion,
+		}
+	}
 
 	// load screenshot paths from screenshotRepository
 	imageFiles, err := ssr.FindInPath(path)
 	if err != nil {
-		return screenshots, err
+		return state, err
 	}
 
 	b := bar.NewWithOpts(
@@ -80,17 +99,17 @@ func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
 
 		text, err := ssr.DetectText(imageFile)
 		if err != nil {
-			return nil, err
+			return state, err
 		}
 
 		song := ss.SearchTerm(text)
 		track, err := spr.Search(song)
 
 		if err != nil {
-			return nil, err
+			return state, err
 		}
 
-		screenshots = append(screenshots, models.Screenshot{
+		state.Screenshots = append(state.Screenshots, models.Screenshot{
 			Path:           imageFile,
 			SongSearchTerm: song,
 			SpotifyTrack:   track,
@@ -99,7 +118,7 @@ func (ss *screenshotService) Begin(path string) ([]models.Screenshot, error) {
 
 	b.Done()
 
-	return screenshots, nil
+	return state, nil
 }
 
 // SearchTerm returns a possible artist and
@@ -253,9 +272,6 @@ func sanitizeSong(song string) string {
 	// convert to lowercase
 	song = strings.ToLower(song)
 
-	// remove weird chars (like dot symbols)
-	song = stripRunes(song)
-
 	// remove multiple spaces
 	song = strings.ReplaceAll(song, "  ", " ")
 
@@ -272,18 +288,4 @@ func sanitizeSong(song string) string {
 	song = div.ReplaceAllString(song, "")
 
 	return song
-}
-
-func stripRunes(value string) string {
-	stripped := []rune{}
-
-	for _, ch := range value {
-		if utf8.RuneLen(ch) > 2 {
-			continue
-		}
-
-		stripped = append(stripped, ch)
-	}
-
-	return string(stripped)
 }

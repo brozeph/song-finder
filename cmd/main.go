@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/brozeph/song-finder/internal/repositories"
 	"github.com/brozeph/song-finder/internal/services"
@@ -16,6 +17,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/ttacon/chalk"
 )
+
+const stateFileName = "song-finder.state.json"
 
 type cmdlineOptions struct {
 	ImageFilePath string `short:"p" long:"path" description:"Path to image files" required:"true"`
@@ -33,17 +36,28 @@ func main() {
 
 	// parse command line arguments
 	if _, err := parser.Parse(); err != nil {
-		log.Error().Err(err).Msg("")
+		log.Error().Stack().Err(err).Msg("")
+		os.Exit(1)
+	}
+
+	// get working directory
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		os.Exit(1)
 	}
 
 	// scaffold up the app
 	screenshotRepository := repositories.NewScreenshotRepository()
 	spotifyRepository := repositories.NewSpotifyRepository()
-	screenshotService := services.NewScreenshotService(&screenshotRepository, &spotifyRepository)
+	stateRepository := repositories.NewStateRepository(filepath.Join(pwd, stateFileName))
+	screenshotService := services.NewScreenshotService(
+		&screenshotRepository,
+		&spotifyRepository,
+		&stateRepository)
 
 	// find all of the image files
-	screenshots, err := screenshotService.Begin(options.ImageFilePath)
+	state, err := screenshotService.Begin(options.ImageFilePath)
 
 	if err != nil {
 		panic(err)
@@ -53,10 +67,10 @@ func main() {
 	fmt.Printf(
 		"Process completed for %s%d%s files",
 		chalk.Blue,
-		len(screenshots),
+		len(state.Screenshots),
 		chalk.Reset)
 
-	for _, ss := range screenshots {
+	for _, ss := range state.Screenshots {
 		fmt.Println(chalk.Blue, "File:", chalk.Reset, ss.Path)
 		fmt.Println(chalk.Red, "Song:", chalk.Reset, ss.SongSearchTerm)
 		fmt.Println(chalk.Green, "Spotify URI:", chalk.Reset, chalk.Blue, ss.SpotifyTrack.URI, chalk.Reset)

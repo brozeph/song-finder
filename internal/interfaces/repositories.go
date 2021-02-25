@@ -15,3 +15,10 @@ type ISpotifyRepository interface {
 	CreatePlaylist(user string, name string, tracks []spotify.SimpleTrack) error
 	Search(searchTerm string) (spotify.SimpleTrack, error)
 }
+
+// IStateRepository provides methods to persist and retrieve state
+// for subsequent runs of the application
+type IStateRepository interface {
+	Load(v interface{}) error
+	Save(v interface{}) error
+}

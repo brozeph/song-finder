@@ -7,9 +7,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	mrand "math/rand"
 
@@ -113,7 +116,13 @@ func (r *spotifyRepository) completeAuth(w http.ResponseWriter, res *http.Reques
 	}
 
 	cl := r.auth.NewClient(tok)
-	fmt.Fprintf(w, "Login Completed!")
+	fmt.Fprint(w, `<!DOCTYPE html><html lang="en"><head><title>Song Finder: Spotify Auth</title></head><body>
+	<p>
+		<label>Login process completed</label>
+		<div>You may close this window now.</div>
+		<div><img src="/assets/img" /></div>
+	</p>
+</body></html>`)
 	r.clientCH <- &cl
 }
 
@@ -146,6 +155,8 @@ func (r *spotifyRepository) ensureClient() (*spotify.Client, error) {
 	cl := <-r.clientCH
 	r.client = cl
 
+	// delay a sec to finish serving request for image
+	time.Sleep(1 * time.Second)
 	if err := srv.Shutdown(context.TODO()); err != nil {
 		return r.client, err
 	}
@@ -191,6 +202,18 @@ func (r *spotifyRepository) setOauthParams() error {
 func (r *spotifyRepository) startServer(wg *sync.WaitGroup) *http.Server {
 	srv := &http.Server{Addr: ":8080"}
 	http.HandleFunc("/callback", r.completeAuth)
+	http.HandleFunc("/assets/img", func(w http.ResponseWriter, res *http.Request) {
+		i, err := ioutil.ReadFile("assets/b99window.gif")
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("unable to load funny image")
+		}
+
+		w.Header().Set("Content-Type", "image/gif")
+		w.Header().Set("Content-Length", strconv.Itoa(len(i)))
+		if _, err := w.Write(i); err != nil {
+			log.Error().Stack().Err(err).Msg("unable to render funny image")
+		}
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, res *http.Request) {
 		log.Debug().
 			Str("URL", res.URL.String()).
@@ -201,8 +224,8 @@ func (r *spotifyRepository) startServer(wg *sync.WaitGroup) *http.Server {
 		defer wg.Done()
 
 		if err := srv.ListenAndServe(); err != nil {
-			log.Debug().Err(err).Msg("")
-			// panic(err)
+			log.Trace().
+				Msg("completed Spotify PKCE auth callback")
 		}
 	}()
 
