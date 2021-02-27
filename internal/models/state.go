@@ -6,6 +6,6 @@ import "time"
 // the  song finder
 type State struct {
 	Completed       time.Time
-	Screenshots     []Screenshot
+	Screenshots     map[string]*Screenshot
 	SoftwareVersion string
 }

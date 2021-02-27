@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/brozeph/song-finder/internal/interfaces"
 	"github.com/brozeph/song-finder/internal/models"
@@ -70,19 +71,19 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 		}
 
 		state = models.State{
-			Screenshots:     []models.Screenshot{},
+			Screenshots:     map[string]*models.Screenshot{},
 			SoftwareVersion: softwareVersion,
 		}
 	}
 
 	// load screenshot paths from screenshotRepository
-	imageFiles, err := ssr.FindInPath(path)
+	screenShots, err := ssr.FindInPath(path)
 	if err != nil {
 		return state, err
 	}
 
 	b := bar.NewWithOpts(
-		bar.WithDimensions(len(imageFiles), len(imageFiles)),
+		bar.WithDimensions(len(screenShots), len(screenShots)),
 		bar.WithFormat(
 			fmt.Sprintf(
 				" %sprocessing...%s :percent :bar %s:eta%s     ",
@@ -94,10 +95,10 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 		),
 	)
 
-	for _, imageFile := range imageFiles {
+	for _, s := range screenShots {
 		b.Tick()
 
-		text, err := ssr.DetectText(imageFile)
+		text, err := ssr.DetectText(s.Path)
 		if err != nil {
 			return state, err
 		}
@@ -109,11 +110,11 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 			return state, err
 		}
 
-		state.Screenshots = append(state.Screenshots, models.Screenshot{
-			Path:           imageFile,
-			SongSearchTerm: song,
-			SpotifyTrack:   track,
-		})
+		s.LastSearched = time.Now()
+		s.SongSearchTerm = song
+		s.SpotifyTrack = track
+
+		state.Screenshots[s.SHASum] = s
 	}
 
 	b.Done()

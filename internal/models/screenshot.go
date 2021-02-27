@@ -11,6 +11,7 @@ import (
 type Screenshot struct {
 	LastSearched   time.Time
 	Path           string
+	SHASum         string
 	SongSearchTerm string
 	SpotifyTrack   spotify.SimpleTrack
 }

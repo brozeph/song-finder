@@ -1,12 +1,15 @@
 package interfaces
 
-import "github.com/zmb3/spotify"
+import (
+	"github.com/brozeph/song-finder/internal/models"
+	"github.com/zmb3/spotify"
+)
 
 // IScreenshotRepository provides methods for retrieving screenshots
 // from the filesystem
 type IScreenshotRepository interface {
 	DetectText(path string) (string, error)
-	FindInPath(path string) ([]string, error)
+	FindInPath(path string) ([]*models.Screenshot, error)
 }
 
 // ISpotifyRepository provides methods to abstract interaction with the

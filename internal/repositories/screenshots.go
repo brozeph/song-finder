@@ -2,12 +2,16 @@ package repositories
 
 import (
 	"context"
+	"crypto/sha256"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	vision "cloud.google.com/go/vision/apiv1"
 	"github.com/brozeph/song-finder/internal/interfaces"
+	"github.com/brozeph/song-finder/internal/models"
+	"github.com/rs/zerolog/log"
 )
 
 var imageExtensions = []string{".png", ".jpg", ".jpeg"}
@@ -54,15 +58,33 @@ func (sr *screenshotRepository) DetectText(path string) (string, error) {
 	return text, nil
 }
 
-func (sr *screenshotRepository) FindInPath(path string) ([]string, error) {
+func (sr *screenshotRepository) FindInPath(path string) ([]*models.Screenshot, error) {
 	var (
-		sf []string
+		h  = sha256.New()
+		sf []*models.Screenshot
 	)
 
 	// find all of the image files
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if isImage(path) && info.Size() > 0 {
-			sf = append(sf, path)
+			// reset hash
+			h.Reset()
+
+			// determine shasum
+			f, err := os.Open(path)
+			if err != nil {
+				return nil
+			}
+
+			defer f.Close()
+			if _, err := io.Copy(h, f); err != nil {
+				log.Error().Stack().Err(err).Msg("unable to calculate sha sum")
+			}
+
+			sf = append(sf, &models.Screenshot{
+				Path:   path,
+				SHASum: string(h.Sum(nil)),
+			})
 		}
 
 		return nil
