@@ -61,7 +61,7 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 	var (
 		ssr   = *ss.screenshotRepository
 		spr   = *ss.spotifyRepository
-		state models.State
+		state = &models.State{}
 		str   = *ss.stateRepository
 	)
 
@@ -70,7 +70,7 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 			log.Fatal().Stack().Err(err).Msg("unable to load state")
 		}
 
-		state = models.State{
+		state = &models.State{
 			Screenshots:     map[string]*models.Screenshot{},
 			SoftwareVersion: softwareVersion,
 		}
@@ -79,7 +79,7 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 	// load screenshot paths from screenshotRepository
 	screenShots, err := ssr.FindInPath(path)
 	if err != nil {
-		return state, err
+		return *state, err
 	}
 
 	b := bar.NewWithOpts(
@@ -98,16 +98,29 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 	for _, s := range screenShots {
 		b.Tick()
 
+		// check if screenshot is in the state already
+		if found, exists := state.Screenshots[s.SHASum]; exists {
+			// pass on processing the screenshot if the software versions match
+			if state.SoftwareVersion == softwareVersion {
+				continue
+			}
+
+			// pass when Spotify track has already been matched
+			if &found.SpotifyTrack != nil {
+				continue
+			}
+		}
+
 		text, err := ssr.DetectText(s.Path)
 		if err != nil {
-			return state, err
+			return *state, err
 		}
 
 		song := ss.SearchTerm(text)
 		track, err := spr.Search(song)
 
 		if err != nil {
-			return state, err
+			return *state, err
 		}
 
 		s.LastSearched = time.Now()
@@ -117,9 +130,15 @@ func (ss *screenshotService) Begin(path string) (models.State, error) {
 		state.Screenshots[s.SHASum] = s
 	}
 
+	// mark the progress bar as complete
 	b.Done()
 
-	return state, nil
+	// save the state off for subsequent use
+	if err := str.Save(state); err != nil {
+		log.Error().Stack().Err(err).Msg("unable to save the state")
+	}
+
+	return *state, nil
 }
 
 // SearchTerm returns a possible artist and

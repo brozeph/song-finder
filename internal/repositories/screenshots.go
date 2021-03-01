@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -83,7 +84,7 @@ func (sr *screenshotRepository) FindInPath(path string) ([]*models.Screenshot, e
 
 			sf = append(sf, &models.Screenshot{
 				Path:   path,
-				SHASum: string(h.Sum(nil)),
+				SHASum: hex.EncodeToString(h.Sum(nil)),
 			})
 		}
 
