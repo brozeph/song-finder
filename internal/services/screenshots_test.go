@@ -331,3 +331,56 @@ K]
 		t.Errorf("expected song result \"%s\" from annotation was not matched: \"%s\"", expected, song)
 	}
 }
+
+func TestSongArtistAndNameFromLinn(t *testing.T) {
+	testAnnotation := `
+Search
+KYDD
+Walk On You
+NO
+WALKING
+Кydd
+Walk On You
+Walk On You
+1:16
+PCM 44.1 kHz/16 bit 1.4 Mbps
+4:30
+K ||
+44
+
+`
+	expected := "кydd walk on you"
+	song := s.SearchTerm(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result \"%s\" from annotation was not matched: \"%s\"", expected, song)
+	}
+}
+
+func TestSongArtistAndNameFromLinn2(t *testing.T) {
+	testAnnotation := `
+Search
+DUSTY
+LEIGH
+NIGHT
+PARENTAL
+ADVISORY
+EXPLICIT CONTENT
+Dusty Leigh
+No Phucks (feat. Bubba
+Sparxxx & Fishscales)
+Boujee Nights
+0:33
+PCM 44.1 kHz/16 bit 1.4 Mbps
+3:17
+|L
+46
+
+`
+	expected := "dusty leigh no phucks (feat. bubba sparxxx, fishscales)"
+	song := s.SearchTerm(testAnnotation)
+
+	if song != expected {
+		t.Errorf("expected song result \"%s\" from annotation was not matched: \"%s\"", expected, song)
+	}
+}

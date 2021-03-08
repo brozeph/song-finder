@@ -16,13 +16,15 @@ import (
 )
 
 var (
-	cr  = regexp.MustCompile(`\n`)
-	div = regexp.MustCompile(`(\b|\.)( - )(\b)`)
-	dot = regexp.MustCompile(`\s?•\s`)
-	//exs     = regexp.MustCompile(`\s{2,}`)
+	close  = regexp.MustCompile(`[\w\d]?\)`)
+	cr     = regexp.MustCompile(`\n`)
+	div    = regexp.MustCompile(`(\b|\.)( - )(\b)`)
+	dot    = regexp.MustCompile(`\s?•\s`)
 	feat   = regexp.MustCompile(`(?i)\(feat\. [.\s\d\w]*\)`)
 	jnk    = regexp.MustCompile(`([•.]\s?){3}`)
 	num    = regexp.MustCompile(`^[\d\W]*$`)
+	open   = regexp.MustCompile(`\([\w\d]?`)
+	pcm    = regexp.MustCompile(`(?i)pcm [0-9]+\.[0-9]+\ khz`)
 	pndra  = regexp.MustCompile(`(?i)\bpandora\b`)
 	ply    = regexp.MustCompile(`(?i)^playing from`)
 	prp    = regexp.MustCompile(`(?i)po(r)?(n)?tland radi[so] pr(o)?[jy]e[ac]t`)
@@ -32,6 +34,7 @@ var (
 	snsrad = regexp.MustCompile(`(?i)on sonos radio`)
 	sp     = regexp.MustCompile(` `)
 	sptfy  = regexp.MustCompile(`(?i)[\n\s]spotify\b`)
+	srch   = regexp.MustCompile(`(?i)(^|\n)search($|\n)`)
 	swpup  = regexp.MustCompile(`(?i)swipe up to [oó]pen`)
 	wd     = regexp.MustCompile(`\w+`)
 )
@@ -149,6 +152,9 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 		songParts []string
 	)
 
+	fmt.Println(annotation)
+
+	isLinn := srch.MatchString(annotation) && pcm.MatchString(annotation)
 	isPandora := pndra.MatchString(annotation)
 	isPRP := prp.MatchString(annotation)
 	isShazam := shzm.MatchString(annotation)
@@ -160,6 +166,7 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 	// the location of the song title and artist name in
 	// the screen capture
 	if isPRP {
+		log.Debug().Msg("detected a PRP radio screenshot")
 		loc := prp.FindStringIndex(annotation)
 
 		if len(loc) > 1 {
@@ -184,6 +191,7 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 		// when Shazam or Sonos radio, continue until near song artist and name
 		if isShazam || isSonosRadio {
 			if shzm.MatchString(line) || snsrad.MatchString(line) {
+				log.Debug().Msg("detected a Shazam  or Sonos screenshot")
 				artist := lines[i-1]
 				name := lines[i-2]
 
@@ -209,6 +217,8 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 			// check to see if two numbers appear on the same line (scrubber)
 			// and that the song is playing from Spotify
 			if num.MatchString(line) && num.MatchString(lines[i+1]) {
+				log.Debug().Msg("detected a Spotify or Pandora radio screenshot")
+
 				artist := lines[i+3]
 				name := lines[i+2]
 
@@ -220,6 +230,32 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 				// safe to clear everything prior to this point because the
 				// song detail begins below (in fact, the song name is next)
 				return formatSongFromSpotifyOrPandora(artist, name)
+			}
+
+			continue
+		}
+
+		// when Linn, continue until the PCM line
+		if isLinn {
+			if pcm.MatchString(line) {
+				log.Debug().Msg("detected a Linn screenshot")
+
+				// <artist name - may be multiple lines>
+				// <song name - may be multiple lines>
+				// <album name>
+				// 1:16 <current play location in song>
+				// PCM 44.1 kHz/16 bit 1.4 Mbps
+
+				artist := lines[i-4]
+				name := lines[i-3]
+
+				// check for unclosed paranthesis
+				if open.MatchString(name) != close.MatchString(name) {
+					name = fmt.Sprintf("%s %s", artist, name)
+					artist = lines[i-5]
+				}
+
+				return sanitizeSong(fmt.Sprintf("%s %s", artist, name))
 			}
 
 			continue
