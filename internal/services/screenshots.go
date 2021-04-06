@@ -152,7 +152,7 @@ func (ss *screenshotService) SearchTerm(annotation string) string {
 		songParts []string
 	)
 
-	fmt.Println(annotation)
+	//fmt.Println(annotation)
 
 	isLinn := srch.MatchString(annotation) && pcm.MatchString(annotation)
 	isPandora := pndra.MatchString(annotation)

@@ -64,6 +64,44 @@ func (r *spotifyRepository) CreatePlaylist(user string, name string, tracks []sp
 	return nil
 }
 
+func (r *spotifyRepository) FindPlaylist(user string, name string) (spotify.SimplePlaylist, error) {
+	plp, err := r.client.GetPlaylistsForUser(user)
+	if err != nil {
+		return spotify.SimplePlaylist{}, err
+	}
+
+	if plp.Total == 0 {
+		return spotify.SimplePlaylist{}, nil
+	}
+
+	found := false
+	var rpl spotify.SimplePlaylist
+
+	for {
+		for _, pl := range plp.Playlists {
+			if pl.Name == name {
+				found = true
+				rpl = pl
+			}
+		}
+
+		if found {
+			break
+		}
+
+		err := r.client.NextPage(plp)
+		if err != nil {
+			if err == spotify.ErrNoMorePages {
+				break
+			}
+
+			return spotify.SimplePlaylist{}, err
+		}
+	}
+
+	return rpl, nil
+}
+
 func (r *spotifyRepository) Search(searchTerm string) (spotify.SimpleTrack, error) {
 	if len(searchTerm) == 0 {
 		return spotify.SimpleTrack{}, nil
